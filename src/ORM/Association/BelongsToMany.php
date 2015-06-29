@@ -430,12 +430,12 @@ class BelongsToMany extends Association
         $targetEntity = $entity->get($this->property());
         $strategy = $this->saveStrategy();
 
-        if ($targetEntity === null) {
-            return false;
-        }
-
-        if ($targetEntity === [] && $entity->isNew()) {
+        $isEmpty = in_array($targetEntity, [null, [], '', false], true);
+        if ($isEmpty && $entity->isNew()) {
             return $entity;
+        }
+        if ($isEmpty) {
+            $targetEntity = [];
         }
 
         if ($strategy === self::SAVE_APPEND) {
@@ -732,6 +732,11 @@ class BelongsToMany extends Association
                 $hasMany = $this->source()->association($this->_junctionTable->alias());
                 $existing = $hasMany->find('all')
                     ->where(array_combine($foreignKey, $primaryValue));
+
+                $associationConditions = $this->conditions();
+                if ($associationConditions) {
+                    $existing->andWhere($associationConditions);
+                }
 
                 $jointEntities = $this->_collectJointEntities($sourceEntity, $targetEntities);
                 $inserts = $this->_diffLinks($existing, $jointEntities, $targetEntities);
